@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Trade, PortfolioSettings, Goal, JournalEntry, UserSettings, Asset, Transaction } from '../types';
 
+// User ID for the specific user
+const USER_ID = 'pasham@yash.com';
+
 // Transform database row to application type
 function transformTradeFromDB(row: any): Trade {
   return {
@@ -28,6 +31,7 @@ function transformTradeFromDB(row: any): Trade {
 
 function transformTradeForDB(trade: Omit<Trade, 'id' | 'createdAt'>): any {
   return {
+    user_id: USER_ID,
     date: trade.date,
     time: trade.time,
     asset: trade.asset,
@@ -62,6 +66,7 @@ function transformAssetFromDB(row: any): Asset {
 
 function transformAssetForDB(asset: Omit<Asset, 'id' | 'createdAt'>): any {
   return {
+    user_id: USER_ID,
     symbol: asset.symbol,
     name: asset.name,
     category: asset.category,
@@ -88,6 +93,7 @@ function transformGoalFromDB(row: any): Goal {
 
 function transformGoalForDB(goal: Omit<Goal, 'id' | 'createdAt'>): any {
   return {
+    user_id: USER_ID,
     type: goal.type,
     target: goal.target,
     current_value: goal.current,
@@ -171,7 +177,7 @@ export function useSupabaseData() {
       setLoading(true);
       setError(null);
 
-      // Load all data in parallel
+      // Load all data in parallel for the specific user
       const [
         tradesResult,
         assetsResult,
@@ -181,25 +187,25 @@ export function useSupabaseData() {
         journalResult,
         transactionsResult,
       ] = await Promise.all([
-        supabase.from('trades').select('*').order('created_at', { ascending: false }),
-        supabase.from('assets').select('*').order('created_at', { ascending: false }),
-        supabase.from('goals').select('*').order('created_at', { ascending: false }),
-        supabase.from('portfolio_settings').select('*').limit(1).single(),
-        supabase.from('user_settings').select('*').limit(1).single(),
-        supabase.from('journal_entries').select('*').order('created_at', { ascending: false }),
-        supabase.from('transactions').select('*').order('created_at', { ascending: false }),
+        supabase.from('trades').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
+        supabase.from('assets').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
+        supabase.from('goals').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
+        supabase.from('portfolio_settings').select('*').eq('user_id', USER_ID).limit(1).single(),
+        supabase.from('user_settings').select('*').eq('user_id', USER_ID).limit(1).single(),
+        supabase.from('journal_entries').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
+        supabase.from('transactions').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
       ]);
 
       // Handle trades
-      if (tradesResult.error) throw tradesResult.error;
+      if (tradesResult.error && tradesResult.error.code !== 'PGRST116') throw tradesResult.error;
       setTrades(tradesResult.data?.map(transformTradeFromDB) || []);
 
       // Handle assets
-      if (assetsResult.error) throw assetsResult.error;
+      if (assetsResult.error && assetsResult.error.code !== 'PGRST116') throw assetsResult.error;
       setAssets(assetsResult.data?.map(transformAssetFromDB) || []);
 
       // Handle goals
-      if (goalsResult.error) throw goalsResult.error;
+      if (goalsResult.error && goalsResult.error.code !== 'PGRST116') throw goalsResult.error;
       setGoals(goalsResult.data?.map(transformGoalFromDB) || []);
 
       // Handle portfolio settings
@@ -232,6 +238,9 @@ export function useSupabaseData() {
         }
         
         setPortfolioState(portfolioData);
+      } else {
+        // Create default portfolio settings for new user
+        await createDefaultPortfolioSettings();
       }
 
       // Handle user settings
@@ -262,10 +271,13 @@ export function useSupabaseData() {
           },
         };
         setUserSettingsState(settings);
+      } else {
+        // Create default user settings for new user
+        await createDefaultUserSettings();
       }
 
       // Handle journal entries
-      if (journalResult.error) throw journalResult.error;
+      if (journalResult.error && journalResult.error.code !== 'PGRST116') throw journalResult.error;
       setJournalEntries(journalResult.data?.map((row: any) => ({
         id: row.id,
         date: row.date,
@@ -281,6 +293,66 @@ export function useSupabaseData() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createDefaultPortfolioSettings = async () => {
+    try {
+      const { error } = await supabase
+        .from('portfolio_settings')
+        .insert({
+          user_id: USER_ID,
+          initial_capital: 10000,
+          current_balance: 10000,
+          max_daily_loss: 500,
+          max_daily_loss_percentage: 5,
+          max_position_size: 1000,
+          max_position_size_percentage: 10,
+          risk_reward_ratio: 2,
+          currency: 'USD',
+          timezone: 'America/New_York',
+        });
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Error creating default portfolio settings:', err);
+    }
+  };
+
+  const createDefaultUserSettings = async () => {
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: USER_ID,
+          theme: 'light',
+          currency: 'USD',
+          timezone: 'America/New_York',
+          date_format: 'MM/DD/YYYY',
+          notifications: {
+            dailyLossLimit: true,
+            goalProgress: true,
+            tradeReminders: false,
+          },
+          risk_management: {
+            maxDailyLoss: 500,
+            maxDailyLossPercentage: 5,
+            maxPositionSize: 1000,
+            maxPositionSizePercentage: 10,
+            riskRewardRatio: 2,
+            stopLossRequired: false,
+            takeProfitRequired: false,
+          },
+          trading_hours: {
+            start: '09:30',
+            end: '16:00',
+            timezone: 'America/New_York',
+          },
+        });
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Error creating default user settings:', err);
     }
   };
 
@@ -338,6 +410,7 @@ export function useSupabaseData() {
           ...updates.emotionalState && { emotional_state: updates.emotionalState },
         })
         .eq('id', id)
+        .eq('user_id', USER_ID)
         .select()
         .single();
 
@@ -369,7 +442,8 @@ export function useSupabaseData() {
       const { error } = await supabase
         .from('trades')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', USER_ID);
 
       if (error) throw error;
 
@@ -424,6 +498,7 @@ export function useSupabaseData() {
           ...updates.isActive !== undefined && { is_active: updates.isActive },
         })
         .eq('id', id)
+        .eq('user_id', USER_ID)
         .select()
         .single();
 
@@ -449,7 +524,8 @@ export function useSupabaseData() {
       const { error } = await supabase
         .from('assets')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', USER_ID);
 
       if (error) throw error;
 
@@ -506,6 +582,7 @@ export function useSupabaseData() {
           ...updates.category && { category: updates.category },
         })
         .eq('id', id)
+        .eq('user_id', USER_ID)
         .select()
         .single();
 
@@ -531,7 +608,8 @@ export function useSupabaseData() {
       const { error } = await supabase
         .from('goals')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', USER_ID);
 
       if (error) throw error;
 
@@ -555,7 +633,7 @@ export function useSupabaseData() {
       const { error } = await supabase
         .from('portfolio_settings')
         .upsert({
-          id: '00000000-0000-0000-0000-000000000000', // Use a fixed UUID for single row
+          user_id: USER_ID,
           initial_capital: newPortfolio.initialCapital,
           current_balance: newPortfolio.currentBalance,
           max_daily_loss: newPortfolio.maxDailyLoss,
@@ -575,6 +653,7 @@ export function useSupabaseData() {
         const newDeposits = newPortfolio.deposits.slice(portfolio.deposits.length);
         for (const deposit of newDeposits) {
           await supabase.from('transactions').insert({
+            user_id: USER_ID,
             date: deposit.date,
             amount: deposit.amount,
             type: 'deposit',
@@ -587,6 +666,7 @@ export function useSupabaseData() {
         const newWithdrawals = newPortfolio.withdrawals.slice(portfolio.withdrawals.length);
         for (const withdrawal of newWithdrawals) {
           await supabase.from('transactions').insert({
+            user_id: USER_ID,
             date: withdrawal.date,
             amount: withdrawal.amount,
             type: 'withdrawal',
@@ -614,7 +694,7 @@ export function useSupabaseData() {
       const { error } = await supabase
         .from('portfolio_settings')
         .upsert({
-          id: '00000000-0000-0000-0000-000000000000',
+          user_id: USER_ID,
           initial_capital: portfolio.initialCapital,
           current_balance: newBalance,
           max_daily_loss: portfolio.maxDailyLoss,
@@ -649,7 +729,7 @@ export function useSupabaseData() {
       const { error } = await supabase
         .from('user_settings')
         .upsert({
-          id: '00000000-0000-0000-0000-000000000000', // Use a fixed UUID for single row
+          user_id: USER_ID,
           theme: newSettings.theme,
           currency: newSettings.currency,
           timezone: newSettings.timezone,
@@ -675,6 +755,7 @@ export function useSupabaseData() {
       const { data, error } = await supabase
         .from('journal_entries')
         .insert([{
+          user_id: USER_ID,
           date: entry.date,
           title: entry.title,
           content: entry.content,
@@ -714,6 +795,7 @@ export function useSupabaseData() {
       userSettings,
       assets,
       exportDate: new Date().toISOString(),
+      userId: USER_ID,
     };
     return JSON.stringify(data, null, 2);
   }, [trades, portfolio, goals, journalEntries, userSettings, assets]);
@@ -722,11 +804,10 @@ export function useSupabaseData() {
     try {
       const data = JSON.parse(jsonData);
       
-      // Clear existing data and import new data
-      // Note: This is a simplified import - in production you might want more sophisticated merging
+      // Clear existing data and import new data for the user
       if (data.trades) {
         // Clear existing trades
-        await supabase.from('trades').delete().neq('id', '');
+        await supabase.from('trades').delete().eq('user_id', USER_ID);
         
         // Insert new trades
         for (const trade of data.trades) {
@@ -736,7 +817,7 @@ export function useSupabaseData() {
       
       if (data.assets) {
         // Clear existing assets
-        await supabase.from('assets').delete().neq('id', '');
+        await supabase.from('assets').delete().eq('user_id', USER_ID);
         
         // Insert new assets
         for (const asset of data.assets) {
@@ -746,7 +827,7 @@ export function useSupabaseData() {
       
       if (data.goals) {
         // Clear existing goals
-        await supabase.from('goals').delete().neq('id', '');
+        await supabase.from('goals').delete().eq('user_id', USER_ID);
         
         // Insert new goals
         for (const goal of data.goals) {

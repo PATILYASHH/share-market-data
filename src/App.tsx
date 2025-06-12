@@ -8,10 +8,13 @@ import { Portfolio } from './components/Portfolio/Portfolio';
 import { GoalManager } from './components/Goals/GoalManager';
 import { AssetManager } from './components/Assets/AssetManager';
 import { Settings } from './components/Settings/Settings';
+import { LoginForm } from './components/Auth/LoginForm';
+import { useAuth } from './hooks/useAuth';
 
 function App() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isAuthenticated, loading, error, login } = useAuth();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -39,6 +42,11 @@ function App() {
         return <Dashboard />;
     }
   };
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return <LoginForm onLogin={login} loading={loading} error={error} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
