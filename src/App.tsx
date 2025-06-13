@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Layout/Header';
 import { Sidebar } from './components/Layout/Sidebar';
 import { MobileNav } from './components/Layout/MobileNav';
+import { WelcomePopup } from './components/Layout/WelcomePopup';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { TradeForm } from './components/TradeEntry/TradeForm';
 import { Portfolio } from './components/Portfolio/Portfolio';
@@ -12,6 +13,20 @@ import { Settings } from './components/Settings/Settings';
 function App() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+
+  // Check if user has seen the welcome popup before
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcomePopup');
+    if (!hasSeenWelcome) {
+      setShowWelcomePopup(true);
+    }
+  }, []);
+
+  const handleWelcomeContinue = () => {
+    setShowWelcomePopup(false);
+    localStorage.setItem('hasSeenWelcomePopup', 'true');
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -60,6 +75,12 @@ function App() {
       </div>
       
       <MobileNav activeSection={activeSection} onSectionChange={setActiveSection} />
+      
+      {/* Welcome Popup */}
+      <WelcomePopup 
+        isOpen={showWelcomePopup} 
+        onContinue={handleWelcomeContinue} 
+      />
     </div>
   );
 }
