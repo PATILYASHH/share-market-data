@@ -7,7 +7,11 @@ import {
   Bell, 
   Clock,
   Save,
-  RefreshCw
+  RefreshCw,
+  Cloud,
+  Download,
+  Upload,
+  AlertTriangle
 } from 'lucide-react';
 import { useTradingData } from '../../hooks/useTradingData';
 import { formatCurrency } from '../../utils/calculations';
@@ -39,9 +43,22 @@ const timezones = [
 ];
 
 export function Settings() {
-  const { portfolio, setPortfolio, userSettings, setUserSettings } = useTradingData();
+  const { 
+    portfolio, 
+    setPortfolio, 
+    userSettings, 
+    setUserSettings, 
+    exportData, 
+    importData,
+    refreshData,
+    loading,
+    error 
+  } = useTradingData();
+  
   const [activeTab, setActiveTab] = useState('capital');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [capitalSettings, setCapitalSettings] = useState({
     initialCapital: portfolio.initialCapital.toString(),
@@ -71,63 +88,129 @@ export function Settings() {
     timezone: userSettings?.tradingHours?.timezone || 'America/New_York',
   });
 
-  const handleSaveCapitalSettings = () => {
-    setPortfolio(prev => ({
-      ...prev,
-      initialCapital: parseFloat(capitalSettings.initialCapital) || prev.initialCapital,
-      currentBalance: parseFloat(capitalSettings.currentBalance) || prev.currentBalance,
-      currency: capitalSettings.currency,
-    }));
-    alert('Capital settings saved successfully!');
+  const handleSaveCapitalSettings = async () => {
+    try {
+      await setPortfolio(prev => ({
+        ...prev,
+        initialCapital: parseFloat(capitalSettings.initialCapital) || prev.initialCapital,
+        currentBalance: parseFloat(capitalSettings.currentBalance) || prev.currentBalance,
+        currency: capitalSettings.currency,
+      }));
+      alert('Capital settings saved successfully!');
+    } catch (error) {
+      alert('Error saving capital settings. Please try again.');
+    }
   };
 
-  const handleSaveRiskSettings = () => {
-    setPortfolio(prev => ({
-      ...prev,
-      maxDailyLoss: parseFloat(riskSettings.maxDailyLoss) || 0,
-      maxDailyLossPercentage: parseFloat(riskSettings.maxDailyLossPercentage) || 0,
-      maxPositionSize: parseFloat(riskSettings.maxPositionSize) || 1000,
-      maxPositionSizePercentage: parseFloat(riskSettings.maxPositionSizePercentage) || 10,
-      riskRewardRatio: parseFloat(riskSettings.riskRewardRatio) || 2,
-    }));
-
-    setUserSettings(prev => ({
-      ...prev,
-      riskManagement: {
-        ...prev?.riskManagement,
+  const handleSaveRiskSettings = async () => {
+    try {
+      await setPortfolio(prev => ({
+        ...prev,
         maxDailyLoss: parseFloat(riskSettings.maxDailyLoss) || 0,
         maxDailyLossPercentage: parseFloat(riskSettings.maxDailyLossPercentage) || 0,
         maxPositionSize: parseFloat(riskSettings.maxPositionSize) || 1000,
         maxPositionSizePercentage: parseFloat(riskSettings.maxPositionSizePercentage) || 10,
         riskRewardRatio: parseFloat(riskSettings.riskRewardRatio) || 2,
-        stopLossRequired: riskSettings.stopLossRequired,
-        takeProfitRequired: riskSettings.takeProfitRequired,
-      },
-    }));
-    alert('Risk management settings saved successfully!');
+      }));
+
+      await setUserSettings(prev => ({
+        ...prev,
+        riskManagement: {
+          ...prev?.riskManagement,
+          maxDailyLoss: parseFloat(riskSettings.maxDailyLoss) || 0,
+          maxDailyLossPercentage: parseFloat(riskSettings.maxDailyLossPercentage) || 0,
+          maxPositionSize: parseFloat(riskSettings.maxPositionSize) || 1000,
+          maxPositionSizePercentage: parseFloat(riskSettings.maxPositionSizePercentage) || 10,
+          riskRewardRatio: parseFloat(riskSettings.riskRewardRatio) || 2,
+          stopLossRequired: riskSettings.stopLossRequired,
+          takeProfitRequired: riskSettings.takeProfitRequired,
+        },
+      }));
+      alert('Risk management settings saved successfully!');
+    } catch (error) {
+      alert('Error saving risk settings. Please try again.');
+    }
   };
 
-  const handleSaveNotificationSettings = () => {
-    setUserSettings(prev => ({
-      ...prev,
-      notifications: notificationSettings,
-    }));
-    alert('Notification settings saved successfully!');
+  const handleSaveNotificationSettings = async () => {
+    try {
+      await setUserSettings(prev => ({
+        ...prev,
+        notifications: notificationSettings,
+      }));
+      alert('Notification settings saved successfully!');
+    } catch (error) {
+      alert('Error saving notification settings. Please try again.');
+    }
   };
 
-  const handleSaveTradingHours = () => {
-    setUserSettings(prev => ({
-      ...prev,
-      tradingHours: tradingHours,
-    }));
-    alert('Trading hours saved successfully!');
+  const handleSaveTradingHours = async () => {
+    try {
+      await setUserSettings(prev => ({
+        ...prev,
+        tradingHours: tradingHours,
+      }));
+      alert('Trading hours saved successfully!');
+    } catch (error) {
+      alert('Error saving trading hours. Please try again.');
+    }
+  };
+
+  const handleExportData = () => {
+    try {
+      const data = exportData();
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trading-journal-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Error exporting data. Please try again.');
+    }
+  };
+
+  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const success = await importData(text);
+      if (success) {
+        alert('Data imported successfully!');
+      } else {
+        alert('Error importing data. Please check the file format.');
+      }
+    } catch (error) {
+      alert('Error importing data. Please try again.');
+    } finally {
+      setIsImporting(false);
+      // Reset the input
+      event.target.value = '';
+    }
+  };
+
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      alert('Data refreshed successfully!');
+    } catch (error) {
+      alert('Error refreshing data. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleResetAllData = () => {
     if (showResetConfirm) {
-      // Reset all data
-      localStorage.clear();
-      window.location.reload();
+      // For cloud storage, we would need to implement a clear all data function
+      alert('Reset functionality would clear all cloud data. This feature needs to be implemented with proper confirmation.');
     } else {
       setShowResetConfirm(true);
       setTimeout(() => setShowResetConfirm(false), 5000);
@@ -139,6 +222,7 @@ export function Settings() {
     { id: 'risk', name: 'Risk Management', icon: Shield },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'trading', name: 'Trading Hours', icon: Clock },
+    { id: 'data', name: 'Data Management', icon: Cloud },
   ];
 
   return (
@@ -146,9 +230,22 @@ export function Settings() {
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Configure your trading journal preferences and risk management
+          Configure your trading journal preferences and manage your cloud data
         </p>
       </div>
+
+      {/* Connection Status */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Connection Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
@@ -228,7 +325,8 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveCapitalSettings}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Capital Settings
@@ -344,7 +442,8 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveRiskSettings}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Risk Settings
@@ -406,7 +505,8 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveNotificationSettings}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Notification Settings
@@ -462,7 +562,8 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveTradingHours}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Trading Hours
@@ -472,26 +573,77 @@ export function Settings() {
         </div>
       )}
 
-      {/* Reset Data Section */}
-      <div className="bg-red-50 border border-red-200 rounded-lg">
-        <div className="px-6 py-4">
-          <h3 className="text-lg font-medium text-red-900">Danger Zone</h3>
-          <p className="text-sm text-red-700 mb-4">
-            Reset all data including trades, portfolio, and settings. This action cannot be undone.
-          </p>
-          <button
-            onClick={handleResetAllData}
-            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm transition-colors ${
-              showResetConfirm
-                ? 'text-white bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                : 'text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500'
-            } focus:outline-none focus:ring-2 focus:ring-offset-2`}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {showResetConfirm ? 'Click Again to Confirm Reset' : 'Reset All Data'}
-          </button>
+      {/* Data Management */}
+      {activeTab === 'data' && (
+        <div className="space-y-6">
+          {/* Cloud Data Management */}
+          <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <h3 className="text-lg font-medium text-gray-900">Cloud Data Management</h3>
+              <p className="text-sm text-gray-500">Manage your cloud-stored trading data</p>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <button
+                  onClick={handleRefreshData}
+                  disabled={isRefreshing || loading}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+                </button>
+
+                <button
+                  onClick={handleExportData}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Data
+                </button>
+
+                <label className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer">
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isImporting ? 'Importing...' : 'Import Data'}
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportData}
+                    className="hidden"
+                    disabled={isImporting || loading}
+                  />
+                </label>
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                <p>• <strong>Refresh:</strong> Sync latest data from cloud storage</p>
+                <p>• <strong>Export:</strong> Download all your data as a JSON file</p>
+                <p>• <strong>Import:</strong> Upload and restore data from a JSON file</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Reset Data Section */}
+          <div className="bg-red-50 border border-red-200 rounded-lg">
+            <div className="px-6 py-4">
+              <h3 className="text-lg font-medium text-red-900">Danger Zone</h3>
+              <p className="text-sm text-red-700 mb-4">
+                Reset all cloud data including trades, portfolio, and settings. This action cannot be undone.
+              </p>
+              <button
+                onClick={handleResetAllData}
+                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm transition-colors ${
+                  showResetConfirm
+                    ? 'text-white bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                    : 'text-red-700 bg-red-100 hover:bg-red-200 focus:ring-red-500'
+                } focus:outline-none focus:ring-2 focus:ring-offset-2`}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {showResetConfirm ? 'Click Again to Confirm Reset' : 'Reset All Data'}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
