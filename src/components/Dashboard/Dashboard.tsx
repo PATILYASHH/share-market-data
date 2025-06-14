@@ -16,7 +16,7 @@ import { ConsistencyGraph } from './ConsistencyGraph';
 import { PnLChart } from './PnLChart';
 import { OpenTrades } from './OpenTrades';
 import { useTradingData } from '../../hooks/useTradingData';
-import { calculateAnalytics, formatCurrency, formatPercent, calculateGoalAnalytics } from '../../utils/calculations';
+import { calculateAnalytics, formatCurrency, formatPercent, calculateGoalAnalytics, calculatePnL } from '../../utils/calculations';
 
 export function Dashboard() {
   const { trades, portfolio, goals } = useTradingData();
@@ -44,8 +44,17 @@ export function Dashboard() {
 
   const analytics = calculateAnalytics(trades);
   
-  const totalPnL = portfolio.currentBalance - portfolio.initialCapital;
-  const totalReturn = ((portfolio.currentBalance - portfolio.initialCapital) / portfolio.initialCapital) * 100;
+  // Calculate total P&L from closed trades
+  const closedTrades = trades.filter(t => !t.isOpen && t.exitPrice);
+  const totalTradePnL = closedTrades.reduce((sum, trade) => {
+    const pnl = trade.pnl !== undefined ? trade.pnl : calculatePnL(trade);
+    return sum + pnl;
+  }, 0);
+  
+  // Calculate total return percentage
+  const totalReturn = portfolio.initialCapital > 0 
+    ? ((portfolio.currentBalance - portfolio.initialCapital) / portfolio.initialCapital) * 100 
+    : 0;
   
   const activeGoals = goals.filter(g => g.isActive);
   const monthlyGoal = activeGoals.find(g => g.type === 'monthly');
@@ -56,14 +65,25 @@ export function Dashboard() {
   // Calculate today's performance
   const today = new Date().toISOString().split('T')[0];
   const todayTrades = trades.filter(t => t.date === today && !t.isOpen);
-  const todayPnL = todayTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+  const todayPnL = todayTrades.reduce((sum, trade) => {
+    const pnl = trade.pnl !== undefined ? trade.pnl : calculatePnL(trade);
+    return sum + pnl;
+  }, 0);
 
   // Calculate this week's performance
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartStr = weekStart.toISOString().split('T')[0];
   const weekTrades = trades.filter(t => t.date >= weekStartStr && !t.isOpen);
-  const weekPnL = weekTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+  const weekPnL = weekTrades.reduce((sum, trade) => {
+    const pnl = trade.pnl !== undefined ? trade.pnl : calculatePnL(trade);
+    return sum + pnl;
+  }, 0);
+
+  // Calculate best trade
+  const bestTrade = closedTrades.length > 0 
+    ? Math.max(...closedTrades.map(t => t.pnl !== undefined ? t.pnl : calculatePnL(t))) 
+    : 0;
 
   return (
     <div className="space-y-8" key={refreshKey}>
@@ -88,10 +108,10 @@ export function Dashboard() {
         
         <MetricCard
           title="Total P&L"
-          value={formatCurrency(totalPnL, portfolio.currency)}
-          change={`${trades.length} total trades`}
-          changeType={totalPnL >= 0 ? 'positive' : 'negative'}
-          icon={totalPnL >= 0 ? TrendingUp : TrendingDown}
+          value={formatCurrency(totalTradePnL, portfolio.currency)}
+          change={`${closedTrades.length} closed trades`}
+          changeType={totalTradePnL >= 0 ? 'positive' : 'negative'}
+          icon={totalTradePnL >= 0 ? TrendingUp : TrendingDown}
           description="All-time profit/loss"
         />
         
@@ -145,7 +165,7 @@ export function Dashboard() {
         
         <MetricCard
           title="Best Trade"
-          value={formatCurrency(Math.max(...trades.filter(t => !t.isOpen).map(t => t.pnl || 0), 0), portfolio.currency)}
+          value={formatCurrency(bestTrade, portfolio.currency)}
           icon={Award}
           description="Largest winning trade"
         />
@@ -241,31 +261,34 @@ export function Dashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {recentTrades.map((trade) => (
-                <div key={trade.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-3 ${
-                      trade.direction === 'long' ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
-                    <div>
-                      <div className="font-medium text-gray-900">{trade.asset}</div>
+              {recentTrades.map((trade) => {
+                const pnl = trade.pnl !== undefined ? trade.pnl : calculatePnL(trade);
+                return (
+                  <div key={trade.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-3 ${
+                        trade.direction === 'long' ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
+                      <div>
+                        <div className="font-medium text-gray-900">{trade.asset}</div>
+                        <div className="text-sm text-gray-500">
+                          {trade.direction.toUpperCase()} • {trade.strategy} • {new Date(trade.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-semibold ${
+                        pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {pnl >= 0 ? '+' : ''}{formatCurrency(pnl, portfolio.currency)}
+                      </div>
                       <div className="text-sm text-gray-500">
-                        {trade.direction.toUpperCase()} • {trade.strategy} • {new Date(trade.date).toLocaleDateString()}
+                        {trade.positionSize.toLocaleString()} units
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`font-semibold ${
-                      (trade.pnl || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {(trade.pnl || 0) >= 0 ? '+' : ''}{formatCurrency(trade.pnl || 0, portfolio.currency)}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {trade.positionSize.toLocaleString()} units
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

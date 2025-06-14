@@ -198,7 +198,8 @@ export function useSupabaseData() {
 
       // Handle trades
       if (tradesResult.error && tradesResult.error.code !== 'PGRST116') throw tradesResult.error;
-      setTrades(tradesResult.data?.map(transformTradeFromDB) || []);
+      const transformedTrades = tradesResult.data?.map(transformTradeFromDB) || [];
+      setTrades(transformedTrades);
 
       // Handle assets
       if (assetsResult.error && assetsResult.error.code !== 'PGRST116') throw assetsResult.error;
@@ -236,6 +237,17 @@ export function useSupabaseData() {
           portfolioData.deposits = deposits;
           portfolioData.withdrawals = withdrawals;
         }
+        
+        // Calculate current balance based on trades P&L
+        const totalTradePnL = transformedTrades
+          .filter(t => !t.isOpen && t.pnl !== undefined)
+          .reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+        
+        const totalDeposits = portfolioData.deposits.reduce((sum, d) => sum + d.amount, 0);
+        const totalWithdrawals = portfolioData.withdrawals.reduce((sum, w) => sum + w.amount, 0);
+        
+        // Update current balance: initial + deposits - withdrawals + trade P&L
+        portfolioData.currentBalance = portfolioData.initialCapital + totalDeposits - totalWithdrawals + totalTradePnL;
         
         setPortfolioState(portfolioData);
       } else {
@@ -389,26 +401,28 @@ export function useSupabaseData() {
 
   const updateTrade = useCallback(async (id: string, updates: Partial<Trade>) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.date !== undefined) updateData.date = updates.date;
+      if (updates.time !== undefined) updateData.time = updates.time;
+      if (updates.asset !== undefined) updateData.asset = updates.asset;
+      if (updates.direction !== undefined) updateData.direction = updates.direction;
+      if (updates.entryPrice !== undefined) updateData.entry_price = updates.entryPrice;
+      if (updates.exitPrice !== undefined) updateData.exit_price = updates.exitPrice;
+      if (updates.positionSize !== undefined) updateData.position_size = updates.positionSize;
+      if (updates.strategy !== undefined) updateData.strategy = updates.strategy;
+      if (updates.reasoning !== undefined) updateData.reasoning = updates.reasoning;
+      if (updates.marketConditions !== undefined) updateData.market_conditions = updates.marketConditions;
+      if (updates.tags !== undefined) updateData.tags = updates.tags;
+      if (updates.screenshots !== undefined) updateData.screenshots = updates.screenshots;
+      if (updates.isOpen !== undefined) updateData.is_open = updates.isOpen;
+      if (updates.pnl !== undefined) updateData.pnl = updates.pnl;
+      if (updates.fees !== undefined) updateData.fees = updates.fees;
+      if (updates.emotionalState !== undefined) updateData.emotional_state = updates.emotionalState;
+
       const { data, error } = await supabase
         .from('trades')
-        .update({
-          ...updates.date && { date: updates.date },
-          ...updates.time && { time: updates.time },
-          ...updates.asset && { asset: updates.asset },
-          ...updates.direction && { direction: updates.direction },
-          ...updates.entryPrice && { entry_price: updates.entryPrice },
-          ...updates.exitPrice !== undefined && { exit_price: updates.exitPrice },
-          ...updates.positionSize && { position_size: updates.positionSize },
-          ...updates.strategy && { strategy: updates.strategy },
-          ...updates.reasoning !== undefined && { reasoning: updates.reasoning },
-          ...updates.marketConditions !== undefined && { market_conditions: updates.marketConditions },
-          ...updates.tags && { tags: updates.tags },
-          ...updates.screenshots && { screenshots: updates.screenshots },
-          ...updates.isOpen !== undefined && { is_open: updates.isOpen },
-          ...updates.pnl !== undefined && { pnl: updates.pnl },
-          ...updates.fees !== undefined && { fees: updates.fees },
-          ...updates.emotionalState && { emotional_state: updates.emotionalState },
-        })
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', USER_ID)
         .select()
@@ -487,16 +501,18 @@ export function useSupabaseData() {
 
   const updateAsset = useCallback(async (id: string, updates: Partial<Asset>) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.symbol !== undefined) updateData.symbol = updates.symbol;
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.exchange !== undefined) updateData.exchange = updates.exchange;
+      if (updates.sector !== undefined) updateData.sector = updates.sector;
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+
       const { data, error } = await supabase
         .from('assets')
-        .update({
-          ...updates.symbol && { symbol: updates.symbol },
-          ...updates.name && { name: updates.name },
-          ...updates.category && { category: updates.category },
-          ...updates.exchange !== undefined && { exchange: updates.exchange },
-          ...updates.sector !== undefined && { sector: updates.sector },
-          ...updates.isActive !== undefined && { is_active: updates.isActive },
-        })
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', USER_ID)
         .select()
@@ -569,18 +585,20 @@ export function useSupabaseData() {
 
   const updateGoal = useCallback(async (id: string, updates: Partial<Goal>) => {
     try {
+      const updateData: any = {};
+      
+      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.target !== undefined) updateData.target = updates.target;
+      if (updates.current !== undefined) updateData.current_value = updates.current;
+      if (updates.deadline !== undefined) updateData.deadline = updates.deadline;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      if (updates.priority !== undefined) updateData.priority = updates.priority;
+      if (updates.category !== undefined) updateData.category = updates.category;
+
       const { data, error } = await supabase
         .from('goals')
-        .update({
-          ...updates.type && { type: updates.type },
-          ...updates.target !== undefined && { target: updates.target },
-          ...updates.current !== undefined && { current_value: updates.current },
-          ...updates.deadline && { deadline: updates.deadline },
-          ...updates.description && { description: updates.description },
-          ...updates.isActive !== undefined && { is_active: updates.isActive },
-          ...updates.priority && { priority: updates.priority },
-          ...updates.category && { category: updates.category },
-        })
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', USER_ID)
         .select()
@@ -638,9 +656,9 @@ export function useSupabaseData() {
           current_balance: newPortfolio.currentBalance,
           max_daily_loss: newPortfolio.maxDailyLoss,
           max_daily_loss_percentage: newPortfolio.maxDailyLossPercentage,
-          max_position_size: newPortfolio.maxPositionSize,
-          max_position_size_percentage: newPortfolio.maxPositionSizePercentage,
-          risk_reward_ratio: newPortfolio.riskRewardRatio,
+          max_position_size: newPortfolio.maxPositionSize || 1000,
+          max_position_size_percentage: newPortfolio.maxPositionSizePercentage || 10,
+          risk_reward_ratio: newPortfolio.riskRewardRatio || 2,
           currency: newPortfolio.currency,
           timezone: newPortfolio.timezone,
           updated_at: new Date().toISOString(),
@@ -699,9 +717,9 @@ export function useSupabaseData() {
           current_balance: newBalance,
           max_daily_loss: portfolio.maxDailyLoss,
           max_daily_loss_percentage: portfolio.maxDailyLossPercentage,
-          max_position_size: portfolio.maxPositionSize,
-          max_position_size_percentage: portfolio.maxPositionSizePercentage,
-          risk_reward_ratio: portfolio.riskRewardRatio,
+          max_position_size: portfolio.maxPositionSize || 1000,
+          max_position_size_percentage: portfolio.maxPositionSizePercentage || 10,
+          risk_reward_ratio: portfolio.riskRewardRatio || 2,
           currency: portfolio.currency,
           timezone: portfolio.timezone,
           updated_at: new Date().toISOString(),

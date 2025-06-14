@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings as SettingsIcon, 
   DollarSign, 
@@ -59,6 +59,7 @@ export function Settings() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [capitalSettings, setCapitalSettings] = useState({
     initialCapital: portfolio.initialCapital.toString(),
@@ -69,9 +70,9 @@ export function Settings() {
   const [riskSettings, setRiskSettings] = useState({
     maxDailyLoss: portfolio.maxDailyLoss.toString(),
     maxDailyLossPercentage: portfolio.maxDailyLossPercentage.toString(),
-    maxPositionSize: portfolio.maxPositionSize?.toString() || '1000',
-    maxPositionSizePercentage: portfolio.maxPositionSizePercentage?.toString() || '10',
-    riskRewardRatio: portfolio.riskRewardRatio?.toString() || '2',
+    maxPositionSize: (portfolio.maxPositionSize || 1000).toString(),
+    maxPositionSizePercentage: (portfolio.maxPositionSizePercentage || 10).toString(),
+    riskRewardRatio: (portfolio.riskRewardRatio || 2).toString(),
     stopLossRequired: userSettings?.riskManagement?.stopLossRequired || false,
     takeProfitRequired: userSettings?.riskManagement?.takeProfitRequired || false,
   });
@@ -88,7 +89,45 @@ export function Settings() {
     timezone: userSettings?.tradingHours?.timezone || 'America/New_York',
   });
 
+  // Update local state when portfolio/settings change
+  useEffect(() => {
+    setCapitalSettings({
+      initialCapital: portfolio.initialCapital.toString(),
+      currentBalance: portfolio.currentBalance.toString(),
+      currency: portfolio.currency || 'USD',
+    });
+  }, [portfolio]);
+
+  useEffect(() => {
+    setRiskSettings({
+      maxDailyLoss: portfolio.maxDailyLoss.toString(),
+      maxDailyLossPercentage: portfolio.maxDailyLossPercentage.toString(),
+      maxPositionSize: (portfolio.maxPositionSize || 1000).toString(),
+      maxPositionSizePercentage: (portfolio.maxPositionSizePercentage || 10).toString(),
+      riskRewardRatio: (portfolio.riskRewardRatio || 2).toString(),
+      stopLossRequired: userSettings?.riskManagement?.stopLossRequired || false,
+      takeProfitRequired: userSettings?.riskManagement?.takeProfitRequired || false,
+    });
+  }, [portfolio, userSettings]);
+
+  useEffect(() => {
+    if (userSettings) {
+      setNotificationSettings({
+        dailyLossLimit: userSettings.notifications?.dailyLossLimit || true,
+        goalProgress: userSettings.notifications?.goalProgress || true,
+        tradeReminders: userSettings.notifications?.tradeReminders || false,
+      });
+
+      setTradingHours({
+        start: userSettings.tradingHours?.start || '09:30',
+        end: userSettings.tradingHours?.end || '16:00',
+        timezone: userSettings.tradingHours?.timezone || 'America/New_York',
+      });
+    }
+  }, [userSettings]);
+
   const handleSaveCapitalSettings = async () => {
+    setIsSaving(true);
     try {
       await setPortfolio(prev => ({
         ...prev,
@@ -98,11 +137,15 @@ export function Settings() {
       }));
       alert('Capital settings saved successfully!');
     } catch (error) {
+      console.error('Error saving capital settings:', error);
       alert('Error saving capital settings. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSaveRiskSettings = async () => {
+    setIsSaving(true);
     try {
       await setPortfolio(prev => ({
         ...prev,
@@ -128,11 +171,15 @@ export function Settings() {
       }));
       alert('Risk management settings saved successfully!');
     } catch (error) {
+      console.error('Error saving risk settings:', error);
       alert('Error saving risk settings. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSaveNotificationSettings = async () => {
+    setIsSaving(true);
     try {
       await setUserSettings(prev => ({
         ...prev,
@@ -140,11 +187,15 @@ export function Settings() {
       }));
       alert('Notification settings saved successfully!');
     } catch (error) {
+      console.error('Error saving notification settings:', error);
       alert('Error saving notification settings. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSaveTradingHours = async () => {
+    setIsSaving(true);
     try {
       await setUserSettings(prev => ({
         ...prev,
@@ -152,7 +203,10 @@ export function Settings() {
       }));
       alert('Trading hours saved successfully!');
     } catch (error) {
+      console.error('Error saving trading hours:', error);
       alert('Error saving trading hours. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -325,11 +379,11 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveCapitalSettings}
-                disabled={loading}
+                disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Capital Settings
+                {isSaving ? 'Saving...' : 'Save Capital Settings'}
               </button>
             </div>
           </div>
@@ -442,11 +496,11 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveRiskSettings}
-                disabled={loading}
+                disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Risk Settings
+                {isSaving ? 'Saving...' : 'Save Risk Settings'}
               </button>
             </div>
           </div>
@@ -505,11 +559,11 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveNotificationSettings}
-                disabled={loading}
+                disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Notification Settings
+                {isSaving ? 'Saving...' : 'Save Notification Settings'}
               </button>
             </div>
           </div>
@@ -562,11 +616,11 @@ export function Settings() {
             <div className="flex justify-end">
               <button
                 onClick={handleSaveTradingHours}
-                disabled={loading}
+                disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Trading Hours
+                {isSaving ? 'Saving...' : 'Save Trading Hours'}
               </button>
             </div>
           </div>
