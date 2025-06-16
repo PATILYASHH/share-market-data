@@ -11,7 +11,9 @@ import {
   Cloud,
   Download,
   Upload,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle,
+  Loader
 } from 'lucide-react';
 import { useTradingData } from '../../hooks/useTradingData';
 import { formatCurrency } from '../../utils/calculations';
@@ -60,6 +62,8 @@ export function Settings() {
   const [isImporting, setIsImporting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [capitalSettings, setCapitalSettings] = useState({
     initialCapital: portfolio.initialCapital.toString(),
@@ -126,19 +130,42 @@ export function Settings() {
     }
   }, [userSettings]);
 
+  const showSuccessMessage = (message: string) => {
+    setSaveSuccess(message);
+    setSaveError(null);
+    setTimeout(() => setSaveSuccess(null), 3000);
+  };
+
+  const showErrorMessage = (message: string) => {
+    setSaveError(message);
+    setSaveSuccess(null);
+    setTimeout(() => setSaveError(null), 5000);
+  };
+
   const handleSaveCapitalSettings = async () => {
     setIsSaving(true);
     try {
+      const newInitialCapital = parseFloat(capitalSettings.initialCapital) || portfolio.initialCapital;
+      const newCurrentBalance = parseFloat(capitalSettings.currentBalance) || portfolio.currentBalance;
+      const newCurrency = capitalSettings.currency;
+
       await setPortfolio(prev => ({
         ...prev,
-        initialCapital: parseFloat(capitalSettings.initialCapital) || prev.initialCapital,
-        currentBalance: parseFloat(capitalSettings.currentBalance) || prev.currentBalance,
-        currency: capitalSettings.currency,
+        initialCapital: newInitialCapital,
+        currentBalance: newCurrentBalance,
+        currency: newCurrency,
       }));
-      alert('Capital settings saved successfully!');
+
+      // Also update user settings currency
+      await setUserSettings(prev => ({
+        ...prev,
+        currency: newCurrency,
+      }));
+
+      showSuccessMessage('Capital settings saved successfully!');
     } catch (error) {
       console.error('Error saving capital settings:', error);
-      alert('Error saving capital settings. Please try again.');
+      showErrorMessage('Error saving capital settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -147,32 +174,39 @@ export function Settings() {
   const handleSaveRiskSettings = async () => {
     setIsSaving(true);
     try {
+      const newMaxDailyLoss = parseFloat(riskSettings.maxDailyLoss) || 0;
+      const newMaxDailyLossPercentage = parseFloat(riskSettings.maxDailyLossPercentage) || 0;
+      const newMaxPositionSize = parseFloat(riskSettings.maxPositionSize) || 1000;
+      const newMaxPositionSizePercentage = parseFloat(riskSettings.maxPositionSizePercentage) || 10;
+      const newRiskRewardRatio = parseFloat(riskSettings.riskRewardRatio) || 2;
+
       await setPortfolio(prev => ({
         ...prev,
-        maxDailyLoss: parseFloat(riskSettings.maxDailyLoss) || 0,
-        maxDailyLossPercentage: parseFloat(riskSettings.maxDailyLossPercentage) || 0,
-        maxPositionSize: parseFloat(riskSettings.maxPositionSize) || 1000,
-        maxPositionSizePercentage: parseFloat(riskSettings.maxPositionSizePercentage) || 10,
-        riskRewardRatio: parseFloat(riskSettings.riskRewardRatio) || 2,
+        maxDailyLoss: newMaxDailyLoss,
+        maxDailyLossPercentage: newMaxDailyLossPercentage,
+        maxPositionSize: newMaxPositionSize,
+        maxPositionSizePercentage: newMaxPositionSizePercentage,
+        riskRewardRatio: newRiskRewardRatio,
       }));
 
       await setUserSettings(prev => ({
         ...prev,
         riskManagement: {
           ...prev?.riskManagement,
-          maxDailyLoss: parseFloat(riskSettings.maxDailyLoss) || 0,
-          maxDailyLossPercentage: parseFloat(riskSettings.maxDailyLossPercentage) || 0,
-          maxPositionSize: parseFloat(riskSettings.maxPositionSize) || 1000,
-          maxPositionSizePercentage: parseFloat(riskSettings.maxPositionSizePercentage) || 10,
-          riskRewardRatio: parseFloat(riskSettings.riskRewardRatio) || 2,
+          maxDailyLoss: newMaxDailyLoss,
+          maxDailyLossPercentage: newMaxDailyLossPercentage,
+          maxPositionSize: newMaxPositionSize,
+          maxPositionSizePercentage: newMaxPositionSizePercentage,
+          riskRewardRatio: newRiskRewardRatio,
           stopLossRequired: riskSettings.stopLossRequired,
           takeProfitRequired: riskSettings.takeProfitRequired,
         },
       }));
-      alert('Risk management settings saved successfully!');
+
+      showSuccessMessage('Risk management settings saved successfully!');
     } catch (error) {
       console.error('Error saving risk settings:', error);
-      alert('Error saving risk settings. Please try again.');
+      showErrorMessage('Error saving risk settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -185,10 +219,10 @@ export function Settings() {
         ...prev,
         notifications: notificationSettings,
       }));
-      alert('Notification settings saved successfully!');
+      showSuccessMessage('Notification settings saved successfully!');
     } catch (error) {
       console.error('Error saving notification settings:', error);
-      alert('Error saving notification settings. Please try again.');
+      showErrorMessage('Error saving notification settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -200,11 +234,19 @@ export function Settings() {
       await setUserSettings(prev => ({
         ...prev,
         tradingHours: tradingHours,
+        timezone: tradingHours.timezone, // Also update main timezone
       }));
-      alert('Trading hours saved successfully!');
+
+      // Update portfolio timezone as well
+      await setPortfolio(prev => ({
+        ...prev,
+        timezone: tradingHours.timezone,
+      }));
+
+      showSuccessMessage('Trading hours saved successfully!');
     } catch (error) {
       console.error('Error saving trading hours:', error);
-      alert('Error saving trading hours. Please try again.');
+      showErrorMessage('Error saving trading hours. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -222,8 +264,9 @@ export function Settings() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      showSuccessMessage('Data exported successfully!');
     } catch (error) {
-      alert('Error exporting data. Please try again.');
+      showErrorMessage('Error exporting data. Please try again.');
     }
   };
 
@@ -236,12 +279,14 @@ export function Settings() {
       const text = await file.text();
       const success = await importData(text);
       if (success) {
-        alert('Data imported successfully!');
+        showSuccessMessage('Data imported successfully!');
+        // Refresh the page to show updated data
+        setTimeout(() => window.location.reload(), 1000);
       } else {
-        alert('Error importing data. Please check the file format.');
+        showErrorMessage('Error importing data. Please check the file format.');
       }
     } catch (error) {
-      alert('Error importing data. Please try again.');
+      showErrorMessage('Error importing data. Please try again.');
     } finally {
       setIsImporting(false);
       // Reset the input
@@ -253,9 +298,9 @@ export function Settings() {
     setIsRefreshing(true);
     try {
       await refreshData();
-      alert('Data refreshed successfully!');
+      showSuccessMessage('Data refreshed successfully!');
     } catch (error) {
-      alert('Error refreshing data. Please try again.');
+      showErrorMessage('Error refreshing data. Please try again.');
     } finally {
       setIsRefreshing(false);
     }
@@ -263,8 +308,7 @@ export function Settings() {
 
   const handleResetAllData = () => {
     if (showResetConfirm) {
-      // For cloud storage, we would need to implement a clear all data function
-      alert('Reset functionality would clear all cloud data. This feature needs to be implemented with proper confirmation.');
+      showErrorMessage('Reset functionality would clear all cloud data. This feature needs to be implemented with proper confirmation.');
     } else {
       setShowResetConfirm(true);
       setTimeout(() => setShowResetConfirm(false), 5000);
@@ -287,6 +331,25 @@ export function Settings() {
           Configure your trading journal preferences and manage your cloud data
         </p>
       </div>
+
+      {/* Success/Error Messages */}
+      {saveSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+            <p className="text-sm text-green-700">{saveSuccess}</p>
+          </div>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+            <p className="text-sm text-red-700">{saveError}</p>
+          </div>
+        </div>
+      )}
 
       {/* Connection Status */}
       {error && (
@@ -359,7 +422,7 @@ export function Settings() {
                 <p className="mt-1 text-xs text-gray-500">Your current account balance</p>
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Currency</label>
                 <select
                   value={capitalSettings.currency}
@@ -382,7 +445,11 @@ export function Settings() {
                 disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? (
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {isSaving ? 'Saving...' : 'Save Capital Settings'}
               </button>
             </div>
@@ -451,7 +518,7 @@ export function Settings() {
                 <p className="mt-1 text-xs text-gray-500">Maximum position as percentage of capital</p>
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Risk/Reward Ratio</label>
                 <input
                   type="number"
@@ -499,7 +566,11 @@ export function Settings() {
                 disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? (
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {isSaving ? 'Saving...' : 'Save Risk Settings'}
               </button>
             </div>
@@ -562,7 +633,11 @@ export function Settings() {
                 disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? (
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {isSaving ? 'Saving...' : 'Save Notification Settings'}
               </button>
             </div>
@@ -619,7 +694,11 @@ export function Settings() {
                 disabled={loading || isSaving}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? (
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {isSaving ? 'Saving...' : 'Save Trading Hours'}
               </button>
             </div>
@@ -656,7 +735,11 @@ export function Settings() {
                 </button>
 
                 <label className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer">
-                  <Upload className="h-4 w-4 mr-2" />
+                  {isImporting ? (
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
                   {isImporting ? 'Importing...' : 'Import Data'}
                   <input
                     type="file"
