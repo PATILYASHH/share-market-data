@@ -126,41 +126,41 @@ export function useSupabaseData() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [portfolio, setPortfolioState] = useState<PortfolioSettings>({
-    initialCapital: 10000,
-    currentBalance: 10000,
-    maxDailyLoss: 500,
+    initialCapital: 100000, // ₹1,00,000 default for Indian users
+    currentBalance: 100000,
+    maxDailyLoss: 5000, // ₹5,000 default
     maxDailyLossPercentage: 5,
-    maxPositionSize: 1000,
+    maxPositionSize: 10000, // ₹10,000 default
     maxPositionSizePercentage: 10,
     riskRewardRatio: 2,
-    currency: 'USD',
-    timezone: 'America/New_York',
+    currency: 'INR', // Default to Indian Rupees
+    timezone: 'Asia/Kolkata', // Indian timezone
     deposits: [],
     withdrawals: [],
   });
   const [userSettings, setUserSettingsState] = useState<UserSettings>({
     theme: 'light',
-    currency: 'USD',
-    timezone: 'America/New_York',
-    dateFormat: 'MM/DD/YYYY',
+    currency: 'INR', // Default to Indian Rupees
+    timezone: 'Asia/Kolkata', // Indian timezone
+    dateFormat: 'DD/MM/YYYY', // Indian date format
     notifications: {
       dailyLossLimit: true,
       goalProgress: true,
       tradeReminders: false,
     },
     riskManagement: {
-      maxDailyLoss: 500,
+      maxDailyLoss: 5000, // ₹5,000 default
       maxDailyLossPercentage: 5,
-      maxPositionSize: 1000,
+      maxPositionSize: 10000, // ₹10,000 default
       maxPositionSizePercentage: 10,
       riskRewardRatio: 2,
       stopLossRequired: false,
       takeProfitRequired: false,
     },
     tradingHours: {
-      start: '09:30',
-      end: '16:00',
-      timezone: 'America/New_York',
+      start: '09:15', // Indian market opening time
+      end: '15:30',   // Indian market closing time
+      timezone: 'Asia/Kolkata',
     },
   });
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -259,27 +259,27 @@ export function useSupabaseData() {
       if (userSettingsResult.data) {
         const settings: UserSettings = {
           theme: userSettingsResult.data.theme || 'light',
-          currency: userSettingsResult.data.currency || 'USD',
-          timezone: userSettingsResult.data.timezone || 'America/New_York',
-          dateFormat: userSettingsResult.data.date_format || 'MM/DD/YYYY',
+          currency: userSettingsResult.data.currency || 'INR',
+          timezone: userSettingsResult.data.timezone || 'Asia/Kolkata',
+          dateFormat: userSettingsResult.data.date_format || 'DD/MM/YYYY',
           notifications: userSettingsResult.data.notifications || {
             dailyLossLimit: true,
             goalProgress: true,
             tradeReminders: false,
           },
           riskManagement: userSettingsResult.data.risk_management || {
-            maxDailyLoss: 500,
+            maxDailyLoss: 5000,
             maxDailyLossPercentage: 5,
-            maxPositionSize: 1000,
+            maxPositionSize: 10000,
             maxPositionSizePercentage: 10,
             riskRewardRatio: 2,
             stopLossRequired: false,
             takeProfitRequired: false,
           },
           tradingHours: userSettingsResult.data.trading_hours || {
-            start: '09:30',
-            end: '16:00',
-            timezone: 'America/New_York',
+            start: '09:15',
+            end: '15:30',
+            timezone: 'Asia/Kolkata',
           },
         };
         setUserSettingsState(settings);
@@ -314,15 +314,15 @@ export function useSupabaseData() {
         .from('portfolio_settings')
         .insert({
           user_id: USER_ID,
-          initial_capital: 10000,
-          current_balance: 10000,
-          max_daily_loss: 500,
+          initial_capital: 100000, // ₹1,00,000
+          current_balance: 100000,
+          max_daily_loss: 5000, // ₹5,000
           max_daily_loss_percentage: 5,
-          max_position_size: 1000,
+          max_position_size: 10000, // ₹10,000
           max_position_size_percentage: 10,
           risk_reward_ratio: 2,
-          currency: 'USD',
-          timezone: 'America/New_York',
+          currency: 'INR',
+          timezone: 'Asia/Kolkata',
         });
 
       if (error) throw error;
@@ -338,27 +338,27 @@ export function useSupabaseData() {
         .insert({
           user_id: USER_ID,
           theme: 'light',
-          currency: 'USD',
-          timezone: 'America/New_York',
-          date_format: 'MM/DD/YYYY',
+          currency: 'INR',
+          timezone: 'Asia/Kolkata',
+          date_format: 'DD/MM/YYYY',
           notifications: {
             dailyLossLimit: true,
             goalProgress: true,
             tradeReminders: false,
           },
           risk_management: {
-            maxDailyLoss: 500,
+            maxDailyLoss: 5000,
             maxDailyLossPercentage: 5,
-            maxPositionSize: 1000,
+            maxPositionSize: 10000,
             maxPositionSizePercentage: 10,
             riskRewardRatio: 2,
             stopLossRequired: false,
             takeProfitRequired: false,
           },
           trading_hours: {
-            start: '09:30',
-            end: '16:00',
-            timezone: 'America/New_York',
+            start: '09:15',
+            end: '15:30',
+            timezone: 'Asia/Kolkata',
           },
         });
 
@@ -656,7 +656,7 @@ export function useSupabaseData() {
           current_balance: newPortfolio.currentBalance,
           max_daily_loss: newPortfolio.maxDailyLoss,
           max_daily_loss_percentage: newPortfolio.maxDailyLossPercentage,
-          max_position_size: newPortfolio.maxPositionSize || 1000,
+          max_position_size: newPortfolio.maxPositionSize || 10000,
           max_position_size_percentage: newPortfolio.maxPositionSizePercentage || 10,
           risk_reward_ratio: newPortfolio.riskRewardRatio || 2,
           currency: newPortfolio.currency,
@@ -717,7 +717,7 @@ export function useSupabaseData() {
           current_balance: newBalance,
           max_daily_loss: portfolio.maxDailyLoss,
           max_daily_loss_percentage: portfolio.maxDailyLossPercentage,
-          max_position_size: portfolio.maxPositionSize || 1000,
+          max_position_size: portfolio.maxPositionSize || 10000,
           max_position_size_percentage: portfolio.maxPositionSizePercentage || 10,
           risk_reward_ratio: portfolio.riskRewardRatio || 2,
           currency: portfolio.currency,

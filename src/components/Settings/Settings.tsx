@@ -19,6 +19,7 @@ import { useTradingData } from '../../hooks/useTradingData';
 import { formatCurrency } from '../../utils/calculations';
 
 const currencies = [
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
@@ -26,10 +27,10 @@ const currencies = [
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
 ];
 
 const timezones = [
+  'Asia/Kolkata',
   'America/New_York',
   'America/Chicago',
   'America/Denver',
@@ -40,7 +41,6 @@ const timezones = [
   'Asia/Tokyo',
   'Asia/Shanghai',
   'Asia/Singapore',
-  'Asia/Kolkata',
   'Australia/Sydney',
 ];
 
@@ -68,13 +68,13 @@ export function Settings() {
   const [capitalSettings, setCapitalSettings] = useState({
     initialCapital: portfolio.initialCapital.toString(),
     currentBalance: portfolio.currentBalance.toString(),
-    currency: portfolio.currency || 'USD',
+    currency: portfolio.currency || 'INR',
   });
 
   const [riskSettings, setRiskSettings] = useState({
     maxDailyLoss: portfolio.maxDailyLoss.toString(),
     maxDailyLossPercentage: portfolio.maxDailyLossPercentage.toString(),
-    maxPositionSize: (portfolio.maxPositionSize || 1000).toString(),
+    maxPositionSize: (portfolio.maxPositionSize || 10000).toString(),
     maxPositionSizePercentage: (portfolio.maxPositionSizePercentage || 10).toString(),
     riskRewardRatio: (portfolio.riskRewardRatio || 2).toString(),
     stopLossRequired: userSettings?.riskManagement?.stopLossRequired || false,
@@ -88,9 +88,9 @@ export function Settings() {
   });
 
   const [tradingHours, setTradingHours] = useState({
-    start: userSettings?.tradingHours?.start || '09:30',
-    end: userSettings?.tradingHours?.end || '16:00',
-    timezone: userSettings?.tradingHours?.timezone || 'America/New_York',
+    start: userSettings?.tradingHours?.start || '09:15',
+    end: userSettings?.tradingHours?.end || '15:30',
+    timezone: userSettings?.tradingHours?.timezone || 'Asia/Kolkata',
   });
 
   // Update local state when portfolio/settings change
@@ -98,7 +98,7 @@ export function Settings() {
     setCapitalSettings({
       initialCapital: portfolio.initialCapital.toString(),
       currentBalance: portfolio.currentBalance.toString(),
-      currency: portfolio.currency || 'USD',
+      currency: portfolio.currency || 'INR',
     });
   }, [portfolio]);
 
@@ -106,7 +106,7 @@ export function Settings() {
     setRiskSettings({
       maxDailyLoss: portfolio.maxDailyLoss.toString(),
       maxDailyLossPercentage: portfolio.maxDailyLossPercentage.toString(),
-      maxPositionSize: (portfolio.maxPositionSize || 1000).toString(),
+      maxPositionSize: (portfolio.maxPositionSize || 10000).toString(),
       maxPositionSizePercentage: (portfolio.maxPositionSizePercentage || 10).toString(),
       riskRewardRatio: (portfolio.riskRewardRatio || 2).toString(),
       stopLossRequired: userSettings?.riskManagement?.stopLossRequired || false,
@@ -123,9 +123,9 @@ export function Settings() {
       });
 
       setTradingHours({
-        start: userSettings.tradingHours?.start || '09:30',
-        end: userSettings.tradingHours?.end || '16:00',
-        timezone: userSettings.tradingHours?.timezone || 'America/New_York',
+        start: userSettings.tradingHours?.start || '09:15',
+        end: userSettings.tradingHours?.end || '15:30',
+        timezone: userSettings.tradingHours?.timezone || 'Asia/Kolkata',
       });
     }
   }, [userSettings]);
@@ -176,7 +176,7 @@ export function Settings() {
     try {
       const newMaxDailyLoss = parseFloat(riskSettings.maxDailyLoss) || 0;
       const newMaxDailyLossPercentage = parseFloat(riskSettings.maxDailyLossPercentage) || 0;
-      const newMaxPositionSize = parseFloat(riskSettings.maxPositionSize) || 1000;
+      const newMaxPositionSize = parseFloat(riskSettings.maxPositionSize) || 10000;
       const newMaxPositionSizePercentage = parseFloat(riskSettings.maxPositionSizePercentage) || 10;
       const newRiskRewardRatio = parseFloat(riskSettings.riskRewardRatio) || 2;
 
@@ -404,9 +404,9 @@ export function Settings() {
                   value={capitalSettings.initialCapital}
                   onChange={(e) => setCapitalSettings(prev => ({ ...prev, initialCapital: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="10000.00"
+                  placeholder="100000.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Your starting trading capital</p>
+                <p className="mt-1 text-xs text-gray-500">Your starting trading capital in ₹</p>
               </div>
 
               <div>
@@ -417,7 +417,7 @@ export function Settings() {
                   value={capitalSettings.currentBalance}
                   onChange={(e) => setCapitalSettings(prev => ({ ...prev, currentBalance: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="10000.00"
+                  placeholder="100000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">Your current account balance</p>
               </div>
@@ -435,7 +435,7 @@ export function Settings() {
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-gray-500">Your trading account currency</p>
+                <p className="mt-1 text-xs text-gray-500">Your trading account currency (Default: Indian Rupee)</p>
               </div>
             </div>
 
@@ -474,7 +474,7 @@ export function Settings() {
                   value={riskSettings.maxDailyLoss}
                   onChange={(e) => setRiskSettings(prev => ({ ...prev, maxDailyLoss: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="500.00"
+                  placeholder="5000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">Maximum loss allowed per day in your currency</p>
               </div>
@@ -500,7 +500,7 @@ export function Settings() {
                   value={riskSettings.maxPositionSize}
                   onChange={(e) => setRiskSettings(prev => ({ ...prev, maxPositionSize: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="1000.00"
+                  placeholder="10000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">Maximum position size in your currency</p>
               </div>
@@ -650,7 +650,7 @@ export function Settings() {
         <div className="bg-white shadow-sm rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-teal-50">
             <h3 className="text-lg font-medium text-gray-900">Trading Hours</h3>
-            <p className="text-sm text-gray-500">Set your preferred trading schedule</p>
+            <p className="text-sm text-gray-500">Set your preferred trading schedule (Default: Indian market hours)</p>
           </div>
           <div className="px-6 py-4 space-y-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -662,6 +662,7 @@ export function Settings() {
                   onChange={(e) => setTradingHours(prev => ({ ...prev, start: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+                <p className="mt-1 text-xs text-gray-500">Indian market: 09:15</p>
               </div>
 
               <div>
@@ -672,6 +673,7 @@ export function Settings() {
                   onChange={(e) => setTradingHours(prev => ({ ...prev, end: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+                <p className="mt-1 text-xs text-gray-500">Indian market: 15:30</p>
               </div>
 
               <div>
@@ -685,6 +687,7 @@ export function Settings() {
                     <option key={tz} value={tz}>{tz}</option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-gray-500">Default: Asia/Kolkata (IST)</p>
               </div>
             </div>
 
