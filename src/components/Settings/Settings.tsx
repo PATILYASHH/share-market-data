@@ -74,7 +74,7 @@ export function Settings() {
   const [riskSettings, setRiskSettings] = useState({
     maxDailyLoss: portfolio.maxDailyLoss.toString(),
     maxDailyLossPercentage: portfolio.maxDailyLossPercentage.toString(),
-    maxPositionSize: (portfolio.maxPositionSize || 10000).toString(),
+    maxPositionSize: (portfolio.maxPositionSize || 200).toString(),
     maxPositionSizePercentage: (portfolio.maxPositionSizePercentage || 10).toString(),
     riskRewardRatio: (portfolio.riskRewardRatio || 2).toString(),
     stopLossRequired: userSettings?.riskManagement?.stopLossRequired || false,
@@ -106,7 +106,7 @@ export function Settings() {
     setRiskSettings({
       maxDailyLoss: portfolio.maxDailyLoss.toString(),
       maxDailyLossPercentage: portfolio.maxDailyLossPercentage.toString(),
-      maxPositionSize: (portfolio.maxPositionSize || 10000).toString(),
+      maxPositionSize: (portfolio.maxPositionSize || 200).toString(),
       maxPositionSizePercentage: (portfolio.maxPositionSizePercentage || 10).toString(),
       riskRewardRatio: (portfolio.riskRewardRatio || 2).toString(),
       stopLossRequired: userSettings?.riskManagement?.stopLossRequired || false,
@@ -176,7 +176,7 @@ export function Settings() {
     try {
       const newMaxDailyLoss = parseFloat(riskSettings.maxDailyLoss) || 0;
       const newMaxDailyLossPercentage = parseFloat(riskSettings.maxDailyLossPercentage) || 0;
-      const newMaxPositionSize = parseFloat(riskSettings.maxPositionSize) || 10000;
+      const newMaxPositionSize = parseFloat(riskSettings.maxPositionSize) || 200;
       const newMaxPositionSizePercentage = parseFloat(riskSettings.maxPositionSizePercentage) || 10;
       const newRiskRewardRatio = parseFloat(riskSettings.riskRewardRatio) || 2;
 
@@ -404,9 +404,9 @@ export function Settings() {
                   value={capitalSettings.initialCapital}
                   onChange={(e) => setCapitalSettings(prev => ({ ...prev, initialCapital: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="100000.00"
+                  placeholder="2000.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Your starting trading capital in ₹</p>
+                <p className="mt-1 text-xs text-gray-500">Your starting trading capital in ₹ (Default: ₹2,000)</p>
               </div>
 
               <div>
@@ -417,7 +417,7 @@ export function Settings() {
                   value={capitalSettings.currentBalance}
                   onChange={(e) => setCapitalSettings(prev => ({ ...prev, currentBalance: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="100000.00"
+                  placeholder="2000.00"
                 />
                 <p className="mt-1 text-xs text-gray-500">Your current account balance</p>
               </div>
@@ -474,9 +474,9 @@ export function Settings() {
                   value={riskSettings.maxDailyLoss}
                   onChange={(e) => setRiskSettings(prev => ({ ...prev, maxDailyLoss: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="5000.00"
+                  placeholder="100.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Maximum loss allowed per day in your currency</p>
+                <p className="mt-1 text-xs text-gray-500">Maximum loss allowed per day in your currency (Default: ₹100)</p>
               </div>
 
               <div>
@@ -500,9 +500,9 @@ export function Settings() {
                   value={riskSettings.maxPositionSize}
                   onChange={(e) => setRiskSettings(prev => ({ ...prev, maxPositionSize: e.target.value }))}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="10000.00"
+                  placeholder="200.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Maximum position size in your currency</p>
+                <p className="mt-1 text-xs text-gray-500">Maximum position size in your currency (Default: ₹200)</p>
               </div>
 
               <div>

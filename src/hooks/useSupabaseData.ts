@@ -126,11 +126,11 @@ export function useSupabaseData() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [portfolio, setPortfolioState] = useState<PortfolioSettings>({
-    initialCapital: 100000, // ₹1,00,000 default for Indian users
-    currentBalance: 100000,
-    maxDailyLoss: 5000, // ₹5,000 default
+    initialCapital: 2000, // ₹2,000 default for Indian users
+    currentBalance: 2000,
+    maxDailyLoss: 100, // ₹100 default (5% of ₹2,000)
     maxDailyLossPercentage: 5,
-    maxPositionSize: 10000, // ₹10,000 default
+    maxPositionSize: 200, // ₹200 default (10% of ₹2,000)
     maxPositionSizePercentage: 10,
     riskRewardRatio: 2,
     currency: 'INR', // Default to Indian Rupees
@@ -149,9 +149,9 @@ export function useSupabaseData() {
       tradeReminders: false,
     },
     riskManagement: {
-      maxDailyLoss: 5000, // ₹5,000 default
+      maxDailyLoss: 100, // ₹100 default
       maxDailyLossPercentage: 5,
-      maxPositionSize: 10000, // ₹10,000 default
+      maxPositionSize: 200, // ₹200 default
       maxPositionSizePercentage: 10,
       riskRewardRatio: 2,
       stopLossRequired: false,
@@ -268,9 +268,9 @@ export function useSupabaseData() {
             tradeReminders: false,
           },
           riskManagement: userSettingsResult.data.risk_management || {
-            maxDailyLoss: 5000,
+            maxDailyLoss: 100,
             maxDailyLossPercentage: 5,
-            maxPositionSize: 10000,
+            maxPositionSize: 200,
             maxPositionSizePercentage: 10,
             riskRewardRatio: 2,
             stopLossRequired: false,
@@ -314,11 +314,11 @@ export function useSupabaseData() {
         .from('portfolio_settings')
         .insert({
           user_id: USER_ID,
-          initial_capital: 100000, // ₹1,00,000
-          current_balance: 100000,
-          max_daily_loss: 5000, // ₹5,000
+          initial_capital: 2000, // ₹2,000
+          current_balance: 2000,
+          max_daily_loss: 100, // ₹100
           max_daily_loss_percentage: 5,
-          max_position_size: 10000, // ₹10,000
+          max_position_size: 200, // ₹200
           max_position_size_percentage: 10,
           risk_reward_ratio: 2,
           currency: 'INR',
@@ -347,9 +347,9 @@ export function useSupabaseData() {
             tradeReminders: false,
           },
           risk_management: {
-            maxDailyLoss: 5000,
+            maxDailyLoss: 100,
             maxDailyLossPercentage: 5,
-            maxPositionSize: 10000,
+            maxPositionSize: 200,
             maxPositionSizePercentage: 10,
             riskRewardRatio: 2,
             stopLossRequired: false,
@@ -656,7 +656,7 @@ export function useSupabaseData() {
           current_balance: newPortfolio.currentBalance,
           max_daily_loss: newPortfolio.maxDailyLoss,
           max_daily_loss_percentage: newPortfolio.maxDailyLossPercentage,
-          max_position_size: newPortfolio.maxPositionSize || 10000,
+          max_position_size: newPortfolio.maxPositionSize || 200,
           max_position_size_percentage: newPortfolio.maxPositionSizePercentage || 10,
           risk_reward_ratio: newPortfolio.riskRewardRatio || 2,
           currency: newPortfolio.currency,
@@ -717,7 +717,7 @@ export function useSupabaseData() {
           current_balance: newBalance,
           max_daily_loss: portfolio.maxDailyLoss,
           max_daily_loss_percentage: portfolio.maxDailyLossPercentage,
-          max_position_size: portfolio.maxPositionSize || 10000,
+          max_position_size: portfolio.maxPositionSize || 200,
           max_position_size_percentage: portfolio.maxPositionSizePercentage || 10,
           risk_reward_ratio: portfolio.riskRewardRatio || 2,
           currency: portfolio.currency,
