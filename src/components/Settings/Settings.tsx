@@ -18,17 +18,6 @@ import {
 import { useTradingData } from '../../hooks/useTradingData';
 import { formatCurrency } from '../../utils/calculations';
 
-const currencies = [
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
-];
-
 const timezones = [
   'Asia/Kolkata',
   'America/New_York',
@@ -68,7 +57,6 @@ export function Settings() {
   const [capitalSettings, setCapitalSettings] = useState({
     initialCapital: portfolio.initialCapital.toString(),
     currentBalance: portfolio.currentBalance.toString(),
-    currency: portfolio.currency || 'INR',
   });
 
   const [riskSettings, setRiskSettings] = useState({
@@ -98,7 +86,6 @@ export function Settings() {
     setCapitalSettings({
       initialCapital: portfolio.initialCapital.toString(),
       currentBalance: portfolio.currentBalance.toString(),
-      currency: portfolio.currency || 'INR',
     });
   }, [portfolio]);
 
@@ -147,19 +134,18 @@ export function Settings() {
     try {
       const newInitialCapital = parseFloat(capitalSettings.initialCapital) || portfolio.initialCapital;
       const newCurrentBalance = parseFloat(capitalSettings.currentBalance) || portfolio.currentBalance;
-      const newCurrency = capitalSettings.currency;
 
       await setPortfolio(prev => ({
         ...prev,
         initialCapital: newInitialCapital,
         currentBalance: newCurrentBalance,
-        currency: newCurrency,
+        currency: 'INR', // Always INR
       }));
 
       // Also update user settings currency
       await setUserSettings(prev => ({
         ...prev,
-        currency: newCurrency,
+        currency: 'INR', // Always INR
       }));
 
       showSuccessMessage('Capital settings saved successfully!');
@@ -316,7 +302,7 @@ export function Settings() {
   };
 
   const tabs = [
-    { id: 'capital', name: 'Capital & Currency', icon: DollarSign },
+    { id: 'capital', name: 'Capital Settings', icon: DollarSign },
     { id: 'risk', name: 'Risk Management', icon: Shield },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'trading', name: 'Trading Hours', icon: Clock },
@@ -387,17 +373,17 @@ export function Settings() {
         </nav>
       </div>
 
-      {/* Capital & Currency Settings */}
+      {/* Capital Settings */}
       {activeTab === 'capital' && (
         <div className="bg-white shadow-sm rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <h3 className="text-lg font-medium text-gray-900">Capital & Currency Settings</h3>
-            <p className="text-sm text-gray-500">Manage your trading capital and currency preferences</p>
+            <h3 className="text-lg font-medium text-gray-900">Capital Settings</h3>
+            <p className="text-sm text-gray-500">Manage your trading capital in Indian Rupees (₹)</p>
           </div>
           <div className="px-6 py-4 space-y-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Initial Capital</label>
+                <label className="block text-sm font-medium text-gray-700">Initial Capital (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -410,7 +396,7 @@ export function Settings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Current Balance</label>
+                <label className="block text-sm font-medium text-gray-700">Current Balance (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -419,23 +405,19 @@ export function Settings() {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="2000.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Your current account balance</p>
+                <p className="mt-1 text-xs text-gray-500">Your current account balance in ₹</p>
               </div>
+            </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Currency</label>
-                <select
-                  value={capitalSettings.currency}
-                  onChange={(e) => setCapitalSettings(prev => ({ ...prev, currency: e.target.value }))}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  {currencies.map(currency => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.symbol} {currency.name} ({currency.code})
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500">Your trading account currency (Default: Indian Rupee)</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <DollarSign className="h-5 w-5 text-blue-600 mr-2" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-900">Currency Information</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    This application uses Indian Rupees (₹) as the only currency. All amounts are displayed and calculated in ₹.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -462,12 +444,12 @@ export function Settings() {
         <div className="bg-white shadow-sm rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
             <h3 className="text-lg font-medium text-gray-900">Risk Management Settings</h3>
-            <p className="text-sm text-gray-500">Configure your risk limits and trading rules</p>
+            <p className="text-sm text-gray-500">Configure your risk limits and trading rules in ₹</p>
           </div>
           <div className="px-6 py-4 space-y-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Max Daily Loss ({portfolio.currency})</label>
+                <label className="block text-sm font-medium text-gray-700">Max Daily Loss (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -476,7 +458,7 @@ export function Settings() {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="100.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Maximum loss allowed per day in your currency (Default: ₹100)</p>
+                <p className="mt-1 text-xs text-gray-500">Maximum loss allowed per day in ₹ (Default: ₹100)</p>
               </div>
 
               <div>
@@ -493,7 +475,7 @@ export function Settings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Max Position Size ({portfolio.currency})</label>
+                <label className="block text-sm font-medium text-gray-700">Max Position Size (₹)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -502,7 +484,7 @@ export function Settings() {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="200.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Maximum position size in your currency (Default: ₹200)</p>
+                <p className="mt-1 text-xs text-gray-500">Maximum position size in ₹ (Default: ₹200)</p>
               </div>
 
               <div>

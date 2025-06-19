@@ -114,7 +114,7 @@ function transformPortfolioFromDB(row: any): PortfolioSettings {
     maxPositionSize: parseFloat(row.max_position_size),
     maxPositionSizePercentage: parseFloat(row.max_position_size_percentage),
     riskRewardRatio: parseFloat(row.risk_reward_ratio),
-    currency: row.currency,
+    currency: 'INR', // Always INR
     timezone: row.timezone,
     deposits: [],
     withdrawals: [],
@@ -133,14 +133,14 @@ export function useSupabaseData() {
     maxPositionSize: 200, // ₹200 default (10% of ₹2,000)
     maxPositionSizePercentage: 10,
     riskRewardRatio: 2,
-    currency: 'INR', // Default to Indian Rupees
+    currency: 'INR', // Always INR
     timezone: 'Asia/Kolkata', // Indian timezone
     deposits: [],
     withdrawals: [],
   });
   const [userSettings, setUserSettingsState] = useState<UserSettings>({
     theme: 'light',
-    currency: 'INR', // Default to Indian Rupees
+    currency: 'INR', // Always INR
     timezone: 'Asia/Kolkata', // Indian timezone
     dateFormat: 'DD/MM/YYYY', // Indian date format
     notifications: {
@@ -259,7 +259,7 @@ export function useSupabaseData() {
       if (userSettingsResult.data) {
         const settings: UserSettings = {
           theme: userSettingsResult.data.theme || 'light',
-          currency: userSettingsResult.data.currency || 'INR',
+          currency: 'INR', // Always INR
           timezone: userSettingsResult.data.timezone || 'Asia/Kolkata',
           dateFormat: userSettingsResult.data.date_format || 'DD/MM/YYYY',
           notifications: userSettingsResult.data.notifications || {
@@ -648,6 +648,9 @@ export function useSupabaseData() {
     try {
       const newPortfolio = typeof updates === 'function' ? updates(portfolio) : { ...portfolio, ...updates };
       
+      // Always ensure currency is INR
+      newPortfolio.currency = 'INR';
+      
       const { error } = await supabase
         .from('portfolio_settings')
         .upsert({
@@ -659,7 +662,7 @@ export function useSupabaseData() {
           max_position_size: newPortfolio.maxPositionSize || 200,
           max_position_size_percentage: newPortfolio.maxPositionSizePercentage || 10,
           risk_reward_ratio: newPortfolio.riskRewardRatio || 2,
-          currency: newPortfolio.currency,
+          currency: 'INR', // Always INR
           timezone: newPortfolio.timezone,
           updated_at: new Date().toISOString(),
         });
@@ -720,18 +723,18 @@ export function useSupabaseData() {
           max_position_size: portfolio.maxPositionSize || 200,
           max_position_size_percentage: portfolio.maxPositionSizePercentage || 10,
           risk_reward_ratio: portfolio.riskRewardRatio || 2,
-          currency: portfolio.currency,
+          currency: 'INR', // Always INR
           timezone: portfolio.timezone,
           updated_at: new Date().toISOString(),
         });
 
       if (error) throw error;
 
-      setPortfolioState(prev => ({ ...prev, currentBalance: newBalance }));
+      setPortfolioState(prev => ({ ...prev, currentBalance: newBalance, currency: 'INR' }));
 
       // Trigger update events
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('portfolioUpdated', { detail: { ...portfolio, currentBalance: newBalance } }));
+        window.dispatchEvent(new CustomEvent('portfolioUpdated', { detail: { ...portfolio, currentBalance: newBalance, currency: 'INR' } }));
       }, 0);
     } catch (err: any) {
       console.error('Error updating portfolio balance:', err);
@@ -744,12 +747,15 @@ export function useSupabaseData() {
     try {
       const newSettings = typeof updates === 'function' ? updates(userSettings) : { ...userSettings, ...updates };
       
+      // Always ensure currency is INR
+      newSettings.currency = 'INR';
+      
       const { error } = await supabase
         .from('user_settings')
         .upsert({
           user_id: USER_ID,
           theme: newSettings.theme,
-          currency: newSettings.currency,
+          currency: 'INR', // Always INR
           timezone: newSettings.timezone,
           date_format: newSettings.dateFormat,
           notifications: newSettings.notifications,
@@ -854,10 +860,14 @@ export function useSupabaseData() {
       }
       
       if (data.portfolio) {
+        // Ensure currency is INR
+        data.portfolio.currency = 'INR';
         await setPortfolio(data.portfolio);
       }
       
       if (data.userSettings) {
+        // Ensure currency is INR
+        data.userSettings.currency = 'INR';
         await setUserSettings(data.userSettings);
       }
       

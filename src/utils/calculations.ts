@@ -320,30 +320,9 @@ function generateGoalInsights(goal: Goal, metrics: any): string[] {
   return insights;
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  const currencySymbols: { [key: string]: string } = {
-    'USD': '$',
-    'EUR': '€',
-    'GBP': '£',
-    'JPY': '¥',
-    'CAD': 'C$',
-    'AUD': 'A$',
-    'CHF': 'Fr',
-    'INR': '₹',
-  };
-
-  const symbol = currencySymbols[currency] || '$';
-  
-  // For INR, format with Indian numbering system (lakhs and crores)
-  if (currency === 'INR') {
-    return formatIndianCurrency(amount, symbol);
-  }
-  
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    currencyDisplay: 'symbol',
-  }).format(amount).replace(/[A-Z]{3}/, symbol);
+export function formatCurrency(amount: number, currency: string = 'INR'): string {
+  // Always use INR formatting
+  return formatIndianCurrency(amount, '₹');
 }
 
 function formatIndianCurrency(amount: number, symbol: string): string {
@@ -416,19 +395,19 @@ export function generateConsistencyData(trades: Trade[], startDate?: Date): Arra
 function calculateLevel(pnl: number, trades: number): number {
   if (trades === 0) return 0; // No trades
   
-  // Calculate level based on P&L amount with better thresholds for visibility
+  // Calculate level based on P&L amount with better thresholds for visibility (adjusted for ₹)
   if (pnl > 0) {
-    // Profit levels (1-4, green shades) - lowered thresholds for better visibility
-    if (pnl >= 500) return 4;   // Dark green
-    if (pnl >= 200) return 3;   // Medium green  
-    if (pnl >= 50) return 2;    // Light green
-    return 1;                   // Very light green
+    // Profit levels (1-4, green shades) - adjusted for INR amounts
+    if (pnl >= 500) return 4;   // Dark green - ₹500+
+    if (pnl >= 200) return 3;   // Medium green - ₹200+
+    if (pnl >= 50) return 2;    // Light green - ₹50+
+    return 1;                   // Very light green - any profit
   } else if (pnl < 0) {
-    // Loss levels (-1 to -4, red shades) - lowered thresholds for better visibility
-    if (pnl <= -500) return -4; // Dark red
-    if (pnl <= -200) return -3; // Medium red
-    if (pnl <= -50) return -2;  // Light red
-    return -1;                  // Very light red
+    // Loss levels (-1 to -4, red shades) - adjusted for INR amounts
+    if (pnl <= -500) return -4; // Dark red - ₹500+ loss
+    if (pnl <= -200) return -3; // Medium red - ₹200+ loss
+    if (pnl <= -50) return -2;  // Light red - ₹50+ loss
+    return -1;                  // Very light red - any loss
   }
   return 0; // Break-even
 }

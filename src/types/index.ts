@@ -38,7 +38,7 @@ export interface PortfolioSettings {
   maxPositionSize: number;
   maxPositionSizePercentage: number;
   riskRewardRatio: number;
-  currency: string;
+  currency: 'INR'; // Only INR allowed
   timezone: string;
   deposits: Transaction[];
   withdrawals: Transaction[];
@@ -67,7 +67,7 @@ export interface Goal {
 
 export interface UserSettings {
   theme: 'light' | 'dark' | 'auto';
-  currency: string;
+  currency: 'INR'; // Only INR allowed
   timezone: string;
   dateFormat: string;
   notifications: {
